@@ -1,0 +1,38 @@
+services:
+  test-pg:
+    image: postgres:15
+    container_name: test_pg
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - 5433:5432
+
+  python-fastapi-app:
+    container_name: python_fastapi_app
+    env_file: .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "10"
+    # command:
+    #   [
+    #     "uvicorn",
+    #     "app.main:app",
+    #     "--proxy-headers",
+    #     "--host",
+    #     "0.0.0.0",
+    #     "--port",
+    #     "8000"
+    #   ]
+
+volumes:
+  pg_data:
