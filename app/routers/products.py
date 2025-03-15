@@ -5,8 +5,10 @@
 #####################################
 
 from typing import Annotated
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 from fastapi import (
     APIRouter,
     Depends,
@@ -14,9 +16,12 @@ from fastapi import (
     HTTPException,
 )
 
-from app.database import get_async_db
 from app.schemas.product import CreateProduct
 from app.applications.category import app_get_category
+from app.database import (
+    get_async_db,
+    celery,  # noqa: F401
+)
 from app.applications.product import (
     app_get_all_products,
     app_get_product,
@@ -31,6 +36,7 @@ from app.applications.user import (
 )
 
 router = APIRouter(prefix="/products", tags=["products"])
+logger.add(f"logs/{datetime.now()}-info.log")
 
 # ---------------------- GET METHODS -----------------------
 
@@ -41,12 +47,15 @@ async def get_all_products(
     """
     Асинхронная функция-обработчик для получения всех продуктов
     """
+    logger.info(f"start function: {get_all_products.__name__}")
+
     try:
         products = await app_get_all_products(session)
         
         return products
     
     except Exception as err:
+        logger.warning(f"error function: {get_all_products.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -59,12 +68,15 @@ async def get_product_by_category(
     """
     Асинхронная функция-обработчик для получения всех продуктов по определенной категории
     """
+    logger.info(f"start function: {get_product_by_category.__name__}")
+
     try:
         products = await app_get_product_by_category(session, category_slug)
         
         return products
     
     except Exception as err:
+        logger.warning(f"error function: {get_product_by_category.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -77,6 +89,8 @@ async def get_product_by_id(
     """
     Асинхронная функция-обработчик для получения определенного продукта по id
     """
+    logger.info(f"start function: {get_product_by_id.__name__}")
+
     try:
         product = await app_get_product(session, product_id=product_id)
         
@@ -88,6 +102,7 @@ async def get_product_by_id(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {get_product_by_id.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -100,6 +115,8 @@ async def get_product_by_slug(
     """
     Асинхронная функция-обработчик для получения определенного продукта по slug
     """
+    logger.info(f"start function: {get_product_by_slug.__name__}")
+
     try:
         product = await app_get_product(session, product_slug=product_slug)
         
@@ -111,6 +128,7 @@ async def get_product_by_slug(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {get_product_by_slug.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -125,6 +143,8 @@ async def create_product(
     """
     Асинхронная функция-обработчик для создания нового продукта
     """
+    logger.info(f"start function: {create_product.__name__}")
+
     try:
         app_check_admin_or_supplier(user)
         await app_get_category(session, category_id=create_product.category_id)
@@ -139,6 +159,7 @@ async def create_product(
             }
     
     except Exception as err:
+        logger.warning(f"error function: {create_product.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -154,6 +175,8 @@ async def update_product_by_id(
     """
     Асинхронная функция-обработчик для обновления свойств продукта по id
     """
+    logger.info(f"start function: {update_product_by_id.__name__}")
+
     try:
         app_check_admin_or_supplier(user)
         await app_get_product(session, product_id=product_id, user=user)
@@ -174,6 +197,7 @@ async def update_product_by_id(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {update_product_by_id.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -188,6 +212,8 @@ async def update_product_by_slug(
     """
     Асинхронная функция-обработчик для обновления свойств продукта по slug
     """
+    logger.info(f"start function: {update_product_by_slug.__name__}")
+
     try:
         app_check_admin_or_supplier(user)
         product = await app_get_product(session, product_slug=product_slug, user=user)
@@ -207,6 +233,7 @@ async def update_product_by_slug(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {update_product_by_slug.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -221,6 +248,8 @@ async def delete_product_by_id(
     """
     Асинхронная функция-обработчик для удаления продукта по id
     """
+    logger.info(f"start function: {delete_product_by_id.__name__}")
+
     try:
         app_check_admin_or_supplier(user)
         product = await app_get_product(session, product_id=product_id, user=user)
@@ -239,6 +268,7 @@ async def delete_product_by_id(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {delete_product_by_id.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -252,6 +282,8 @@ async def delete_product_by_slug(
     """
     Асинхронная функция-обработчик для обновления признака активности продукта
     """
+    logger.info(f"start function: {delete_product_by_slug.__name__}")
+
     try:
         app_check_admin_or_supplier(user)
         product = await app_get_product(session, product_slug=product_slug, user=user)
@@ -271,5 +303,6 @@ async def delete_product_by_slug(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {delete_product_by_slug.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")

@@ -1,12 +1,24 @@
 services:
-  test-pg:
+  database:
     image: postgres:15
-    container_name: test_pg
+    container_name: database
     env_file: .env
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
       - 5433:5432
+    networks:
+      - backend
+
+  testredis:
+    image: redis:alpine
+    container_name: testredis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
 
   python-fastapi-app:
     container_name: python_fastapi_app
@@ -16,6 +28,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    networks:
+      - backend
+    depends_on:
+      - testredis
+      - database
+    restart: always
     volumes:
       - .:/app
     logging:
@@ -23,16 +41,11 @@ services:
       options:
         max-size: "5m"
         max-file: "10"
-    # command:
-    #   [
-    #     "uvicorn",
-    #     "app.main:app",
-    #     "--proxy-headers",
-    #     "--host",
-    #     "0.0.0.0",
-    #     "--port",
-    #     "8000"
-    #   ]
+
+networks:
+  backend:
+    driver: bridge
 
 volumes:
   pg_data:
+  redis_data:

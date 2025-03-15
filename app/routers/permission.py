@@ -14,7 +14,10 @@ from fastapi import (
     status,
 )
 
-from app.database import get_async_db
+from app.database import (
+    get_async_db,
+    celery,  # noqa: F401
+)
 from app.applications.user import (
     get_current_user,
     app_get_user,

@@ -5,8 +5,10 @@
 #########################################
 
 from typing import Annotated
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 from fastapi import (
     APIRouter,
     Depends,
@@ -14,8 +16,12 @@ from fastapi import (
     HTTPException,
 )
 
-from app.database import get_async_db
 from app.schemas.category import CreateCategory
+from app.applications.task import call_background_task
+from app.database import (
+    get_async_db,
+    celery,  # noqa: F401
+)
 from app.applications.user import (
     get_current_user,
     app_check_admin,
@@ -29,6 +35,7 @@ from app.applications.category import (
 )
 
 router = APIRouter(prefix="/categories", tags=["category"])
+logger.add(f"logs/{datetime.now()}-info.log")
 
 # ---------------------- GET METHODS -----------------------
 
@@ -39,12 +46,16 @@ async def get_all_categories(
     """
     Асинхронная функция-обработчик для получения всех категорий
     """
+    logger.info(f"start function: {get_all_categories.__name__}")
+    
     try:
         categories = await app_get_all_categories(session)
+        call_background_task.apply_async(args=["TEST Message"])
         
         return categories
     
     except Exception as err:
+        logger.warning(f"error function: {get_all_categories.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -57,6 +68,8 @@ async def get_category_by_id(
     """
     Асинхронная функция-обработчик для определенной категории по id
     """
+    logger.info(f"start function: {get_category_by_id.__name__}")
+    
     try:
         category = await app_get_category(session, category_id=category_id)
         
@@ -68,6 +81,7 @@ async def get_category_by_id(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {get_category_by_id.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -80,6 +94,8 @@ async def get_category_by_slug(
     """
     Асинхронная функция-обработчик для определенной категории по slug
     """
+    logger.info(f"start function: {get_category_by_slug.__name__}")
+    
     try:
         category = await app_get_category(session, category_slug=category_slug)
         
@@ -91,6 +107,7 @@ async def get_category_by_slug(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {get_category_by_slug.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -105,6 +122,8 @@ async def create_category(
     """
     Асинхронная функция-обработчик для создания новой категории
     """
+    logger.info(f"start function: {create_category.__name__}")
+    
     try:
         app_check_admin(user)
         category = app_create_category(create_category)
@@ -118,6 +137,7 @@ async def create_category(
             }
     
     except Exception as err:
+        logger.warning(f"error function: {create_category.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -133,6 +153,8 @@ async def update_category_by_id(
     """
     Асинхронная функция-обработчик для обновления свойств категории по id
     """
+    logger.info(f"start function: {update_category_by_id.__name__}")
+    
     try:
         app_check_admin(user)
         await app_get_category(session, category_id=category_id)
@@ -152,6 +174,7 @@ async def update_category_by_id(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {update_category_by_id.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -166,6 +189,8 @@ async def update_category_by_slug(
     """
     Асинхронная функция-обработчик для обновления свойств категории по slug
     """
+    logger.info(f"start function: {update_category_by_slug.__name__}")
+    
     try:
         app_check_admin(user)
         await app_get_category(session, category_slug=category_slug)
@@ -185,6 +210,7 @@ async def update_category_by_slug(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {update_category_by_slug.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -199,6 +225,8 @@ async def delete_category_by_id(
     """
     Асинхронная функция-обработчик для удаления категории по id
     """
+    logger.info(f"start function: {delete_category_by_id.__name__}")
+    
     try:
         app_check_admin(user)
         category = await app_get_category(session, category_id=category_id)
@@ -217,6 +245,7 @@ async def delete_category_by_id(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {delete_category_by_id.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -230,6 +259,8 @@ async def delete_category_by_slug(
     """
     Асинхронная функция-обработчик для обновления признака активности категории
     """
+    logger.info(f"start function: {delete_category_by_slug.__name__}")
+    
     try:
         app_check_admin(user)
         category = await app_get_category(session, category_slug=category_slug, user_id=user.get("id", ""))
@@ -249,5 +280,6 @@ async def delete_category_by_slug(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {delete_category_by_slug.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")

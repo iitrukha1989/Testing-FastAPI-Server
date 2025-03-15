@@ -5,13 +5,18 @@
 ##################################
 
 from typing import Annotated
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 from app.schemas.review import CreateReview
 from app.mapper.rating import data_to_model
-from app.database import get_async_db
+from app.database import (
+    get_async_db,
+    celery,  # noqa: F401
+)
 from app.applications.product import (
     app_get_product,
     app_update_rating_product,
@@ -33,6 +38,7 @@ from app.applications.review import (
 )
 
 router = APIRouter(prefix="/review", tags=["review"])
+logger.add(f"logs/{datetime.now()}-info.log")
 
 # ---------------------- GET METHODS -----------------------
 
@@ -43,12 +49,15 @@ async def all_reviews(
     """
     Асинхронная функция-обработчик для получения всех обзоров и рейтингов
     """
+    logger.info(f"start function: {all_reviews.__name__}")
+
     try:
         reviews = await app_get_all_reviews(session)
 
         return reviews
     
     except Exception as err:
+        logger.warning(f"error function: {all_reviews.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -61,6 +70,8 @@ async def products_reviews(
     """
     Асинхронная функция-обработчик для получения всех обзоров и рейтингов по определенному продукту
     """
+    logger.info(f"start function: {products_reviews.__name__}")
+
     try:
         product = await app_get_product(session, product_slug=product_slug)
         reviews = await app_get_products_reviews(session, product)
@@ -73,6 +84,7 @@ async def products_reviews(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {products_reviews.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -87,6 +99,8 @@ async def add_review(
     """
     Асинхронная функция-обработчик для создания отзыва и рейтинга
     """
+    logger.info(f"start function: {add_review.__name__}")
+
     try:
         app_check_customer(user)
         product = await app_get_product(session, product_id=create_review.product_id)
@@ -110,6 +124,7 @@ async def add_review(
             }
     
     except Exception as err:
+        logger.warning(f"error function: {add_review.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
 
@@ -124,6 +139,8 @@ async def delete_review(
     """
     Асинхронная функция-обработчик для обновления признака активности отзыва и рейтинга
     """
+    logger.info(f"start function: {delete_review.__name__}")
+
     try:
         app_check_admin(user)
         review = await app_get_review(session, review_id, user)
@@ -146,5 +163,6 @@ async def delete_review(
             detail=http_err.detail
             )
     except Exception as err:
+        logger.warning(f"error function: {delete_review.__name__}: message {err}")
         await session.rollback()
         print(f"{err}, {status.HTTP_400_BAD_REQUEST}")
