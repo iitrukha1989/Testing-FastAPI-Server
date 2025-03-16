@@ -19,5 +19,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN uv pip freeze > requirements.txt 
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 RUN pip install --no-cache-dir uvicorn
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN pip install --no-cache-dir gunicorn
